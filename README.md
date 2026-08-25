@@ -1,5 +1,14 @@
 # placepin-spec
 
+> [!WARNING]
+> **Under construction — v0.x, and not ready to build on.**
+> The protocol is still a draft, the API is unstable, and anything here can
+> change without notice or a deprecation period. Please don't depend on it in
+> something you care about yet.
+>
+> For what placepin is and where it's going, see
+> **[about.placepin.org](https://about.placepin.org)**.
+
 The normative specification for the [placepin](https://placepin.org) location
 protocol, and the conformance fixtures every implementation is measured against.
 
