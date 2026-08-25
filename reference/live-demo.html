@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>placepin.org — live encoder/decoder (soft cartography)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{
+  --bg:#f4efe4; --panel:#fbf8f1; --ink:#3c352a; --ink-soft:#7a6f5d; --faint:#a89a80;
+  --rule:#e6dcc7; --rule-soft:#efe7d6;
+  --accent:#8a6a4f; --accent-soft:#efe3d1;
+  --terracotta:#c1694f; --sage:#7c9070; --dustyblue:#6f93ad;
+  --code-bg:#3c352a; --code-ink:#f4ecd8;
+  --card:#fbf8f1; --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --sans:"Iowan Old Style",Georgia,"Palatino Linotype",Palatino,serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+
+.mast{border-bottom:1px solid var(--rule);background:var(--bg)}
+.mast-in{max-width:1400px;margin:0 auto;padding:18px 24px;display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.title{font-family:var(--serif);font-weight:600;font-size:23px;letter-spacing:-.005em;margin:0;color:var(--ink)}
+.title .stop{color:var(--terracotta)}
+.tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+
+.layout{display:flex;height:calc(100vh - 60px);max-width:1400px;margin:0 auto}
+#map{flex:1 1 auto;min-width:0;filter:saturate(0.92)}
+.panel{width:400px;flex:0 0 400px;background:var(--panel);border-left:1px solid var(--rule);overflow-y:auto;padding:22px}
+@media(max-width:900px){
+  .layout{flex-direction:column;height:auto}
+  #map{height:56vh}
+  .panel{width:100%;flex:1 1 auto;border-left:none;border-top:1px solid var(--rule)}
+}
+
+h2{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin:24px 0 9px}
+h2:first-child{margin-top:0}
+p{margin:0 0 10px;font-size:13.5px;color:var(--ink-soft)}
+
+.specimen{background:var(--code-bg);border-radius:14px;padding:22px 19px;box-shadow:0 20px 44px -28px rgba(60,53,42,.55)}
+.specimen .code{font-family:var(--mono);font-size:clamp(20px,4vw,26px);letter-spacing:.02em;color:var(--code-ink);word-break:break-all}
+.specimen .b1{color:#f4ecd8}
+.specimen .b2{color:#e0d4b8}
+.specimen .b3{color:#c9bfa8}
+.specimen .sub{font-family:var(--mono);font-size:10.5px;color:#a89a80;margin-top:9px}
+.hint{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-top:8px}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+td{padding:5px 0;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+td.k{color:var(--faint);font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;width:40%}
+td.v{font-family:var(--mono);color:var(--ink);text-align:right}
+td.tier{font-family:var(--mono);color:var(--ink-soft);font-size:10.5px;text-align:left;text-transform:uppercase;letter-spacing:.04em}
+
+.lvltable td.dot{width:14px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:2px}
+
+.field{margin-top:6px}
+input[type=text]{width:100%;font-family:var(--mono);font-size:15px;letter-spacing:.03em;padding:10px 12px;border:1.5px solid var(--rule);border-radius:8px;background:var(--bg);color:var(--ink);text-transform:uppercase}
+input[type=text]:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+button{font-family:var(--sans);font-weight:600;font-size:13px;padding:10px 14px;border-radius:8px;border:1.5px solid var(--ink);background:var(--ink);color:#fbf8f1;cursor:pointer;margin-top:8px;margin-right:6px}
+button:hover{background:#241f18}
+button.secondary{background:var(--card);color:var(--ink);border-color:var(--rule)}
+button.secondary:hover{background:var(--rule-soft)}
+#err{color:var(--terracotta);font-size:12.5px;margin-top:6px;min-height:1em}
+
+.rule-note{border-left:3px solid var(--accent);padding:9px 12px;margin:10px 0 0;background:var(--accent-soft);font-size:12px;color:var(--ink-soft);border-radius:0 8px 8px 0}
+.rule-note b{color:var(--ink);font-weight:600}
+.footer{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:24px;padding-top:14px;border-top:1px solid var(--rule-soft)}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="mast-in">
+    <h1 class="title">placepin<span class="stop">.</span>org</h1>
+    <span class="tag">hierarchical reference implementation · click the map or paste a code</span>
+  </div>
+</header>
+
+<div class="layout">
+  <div id="map"></div>
+  <div class="panel">
+
+    <h2>Selected point</h2>
+    <div class="specimen">
+      <div class="code" id="codeOut">— click the map —</div>
+      <div class="sub" id="codeSub">block 1 (local) · block 2 (area) · block 3 (region) — finest to coarsest, left to right</div>
+    </div>
+    <div class="hint">Click anywhere on the map to encode that point. Each code reads local → area → region — the opposite of zooming in. To find a spot from a code, start from the right: the last block names a real ≈137&nbsp;km region, the middle block narrows inside it, and the first block pins the exact ≈5&nbsp;m spot.</div>
+
+    <h2>Dive-down breakdown</h2>
+    <table class="lvltable">
+      <tr><th></th><th>Precision</th><th>Valid code</th><th>Footprint (h × w)</th></tr>
+      <tr><td class="dot"><span class="dot" style="background:#9fb8c9"></span></td><td class="tier">Region</td><td class="v" id="lv1code">—</td><td class="v" id="lv1size">—</td></tr>
+      <tr><td class="dot"><span class="dot" style="background:#6f93ad"></span></td><td class="tier">Area + region</td><td class="v" id="lv2code">—</td><td class="v" id="lv2size">—</td></tr>
+      <tr><td class="dot"><span class="dot" style="background:#c1694f"></span></td><td class="tier">Full (leaf)</td><td class="v" id="lv3code">—</td><td class="v" id="lv3size">—</td></tr>
+    </table>
+    <p style="font-size:11.5px;margin-top:8px">Each row above is a valid, independently decodable code on its own — but a shorter code is the <b>right-hand end</b> of the full code (drop characters from the left, not the right). Coloured boxes on the map mirror this table: pale = region alone, mid = area + region, terracotta = the final leaf cell.</p>
+
+    <h2 id="cellDetailHeading">Leaf cell detail</h2>
+    <table>
+      <tr><td class="k">Clicked point</td><td class="v" id="rClicked">—</td></tr>
+      <tr><td class="k" id="rCentreLabel">Leaf cell centre</td><td class="v" id="rCentre">—</td></tr>
+      <tr><td class="k" id="rAreaLabel">Leaf cell area</td><td class="v" id="rArea">—</td></tr>
+    </table>
+
+    <h2>Decode a code</h2>
+    <div class="field">
+      <input type="text" id="codeIn" placeholder="PYY-ZT7-WMR or just WMR or ZT7-WMR" autocomplete="off" spellcheck="false">
+    </div>
+    <button id="btnLocate">Locate on map</button>
+    <button class="secondary" id="btnMyLoc" type="button">Use my location</button>
+    <div id="err"></div>
+    <div class="hint">A 3- or 6-character code is valid on its own too — but take it from the right: the <b>last</b> 3 or 6 characters name the coarser block it belongs to, not the first.</div>
+
+    <h2>Implementation notes</h2>
+    <div class="rule-note">
+      <b>Alphabet</b> — 30 characters, <code style="font-family:var(--mono)">0123456789BCDFGHJKMNPQRSTVWXYZ</code>. No vowels (so codes can't spell words) and no L (1/l/I confusion); 0 and 1 are safe to keep since O/I/L are already gone.
+    </div>
+    <div class="rule-note">
+      <b>Genuinely hierarchical, written local-first</b> — each block is a fresh 27,000-way split of the specific cell its coarser neighbour named, not an arbitrary slice of one flat global index. Block 3 (rightmost) alone names a real ≈137 km region; block 2 + 3 narrows to ≈840 m inside it; all three blocks narrow to a ≈5 m leaf cell. A short code drops characters from the <b>left</b>, not the right — the region you're in survives truncation, not the exact spot.
+    </div>
+    <div class="rule-note">
+      <b>Exact utilisation</b> — a cycling largest-remainder apportionment hands out leftover rounding budget until every block hits <i>exactly</i> 100% of its 27,000-slot address space, at every level. Longitude is normalised to [-180°, 180°) first, so ±180° always encode identically.
+    </div>
+    <div class="rule-note">
+      <b>Room to grow</b> — the format is exactly nine characters today, with no reserved prefix. A future revision could add an explicit, visibly distinct <code style="font-family:var(--mono)">X-</code> extension <i>prepended</i> before block 1, for sub-leaf precision; see the spec for how that would work.
+    </div>
+
+    <div class="footer">Client-side only — no network calls except map tiles. No pre-built lookup table: every encode/decode partitions its parent box on the fly. Deterministic, no external lookup service.</div>
+  </div>
+</div>
+
+<script>
+// ---------- placepin algorithm: recursive hierarchical equal-area grid ----------
+// Each of the three 3-character blocks is a 27,000-way split of the cell its
+// coarser neighbour selected (the region block splits the whole Earth; the
+// area block splits the region cell; the local block splits the area cell) —
+// a genuine "dive deeper" address, not a flat index cut into three pieces.
+// Every split uses the same latitude-row-adaptive method, scoped to whatever
+// box it's given, plus a cycling largest-remainder apportionment so it fills
+// its 27,000 slots exactly.
+//
+// COMPUTATION always proceeds coarsest-to-finest — a block only means
+// something relative to the specific cell its coarser neighbour named. But
+// the code is WRITTEN finest-to-coarsest: block 1 (leftmost) is the local
+// block, block 3 (rightmost) is the region block — so the part a person is
+// most likely to actually know or be told comes first, and a proximity-aware
+// search UI can offer to fill in the rest once it has that first block. The
+// trade-off: a valid, independently-decodable short code is now the RIGHT-hand
+// end of a full code (drop the leading, finer blocks), not the left, because
+// the region block is always resolvable alone, and the local block never is.
+const ALPHABET = "0123456789BCDFGHJKMNPQRSTVWXYZ";
+const BASE = ALPHABET.length; // 30
+const R = 6371000; // mean Earth radius, m
+const FACTOR = BASE ** 3; // 27,000 — one block's worth of address space
+
+function bandArea(latMin, latMax, lngMin, lngMax){
+  const lngRad = (lngMax - lngMin) * Math.PI / 180;
+  return lngRad * R * R * (Math.sin(latMax*Math.PI/180) - Math.sin(latMin*Math.PI/180));
+}
+
+function partition(latMin, latMax, lngMin, lngMax, factor){
+  const area = bandArea(latMin, latMax, lngMin, lngMax);
+  const s = Math.sqrt(area / factor);
+  const heightM = (latMax - latMin) * Math.PI / 180 * R;
+  let rows = Math.max(1, Math.floor(heightM / s));
+
+  let raw, cols, total;
+  for(;;){
+    raw = new Array(rows);
+    cols = new Array(rows);
+    total = 0;
+    for (let r = 0; r < rows; r++){
+      const latC = latMin + (r + 0.5) * (latMax - latMin) / rows;
+      const v = (lngMax - lngMin) * Math.PI / 180 * R * Math.cos(latC * Math.PI / 180) / s;
+      raw[r] = v;
+      cols[r] = Math.max(1, Math.floor(v));
+      total += cols[r];
+    }
+    if (total <= factor || rows === 1) break;
+    rows--;
+  }
+
+  // largest-remainder (Hamilton) apportionment, CYCLED until the row/column
+  // counts sum to exactly `factor` — a single pass can only add 1 per row,
+  // which isn't always enough to close the gap.
+  const order = raw.map((v, r) => [v - cols[r], r]).sort((a, b) => b[0]-a[0] || a[1]-b[1]).map(p => p[1]);
+  let i = 0;
+  while (total < factor){ cols[order[i % rows]]++; total++; i++; }
+
+  const prefix = new Float64Array(rows + 1);
+  let acc = 0;
+  for (let r = 0; r < rows; r++){ prefix[r] = acc; acc += cols[r]; }
+  prefix[rows] = acc;
+
+  return { rows, cols, prefix, total: acc, latMin, latMax, lngMin, lngMax };
+}
+
+function rowColFromLatLng(part, lat, lng){
+  const rowH = (part.latMax - part.latMin) / part.rows;
+  let row = Math.floor((lat - part.latMin) / rowH);
+  row = Math.max(0, Math.min(part.rows - 1, row));
+  const cols = part.cols[row];
+  const lngSpan = (part.lngMax - part.lngMin) / cols;
+  let col = Math.floor((lng - part.lngMin) / lngSpan);
+  col = Math.max(0, Math.min(cols - 1, col));
+  return { row, col };
+}
+
+// Bounds are half-open [min, max); the LAST row/column of a partition snaps
+// to the parent box's exact edge rather than accumulating rowHeight * row,
+// which removes tiny float overshoots that would otherwise break nesting.
+function boundsFromRowCol(part, row, col){
+  const rowH = (part.latMax - part.latMin) / part.rows;
+  const cols = part.cols[row];
+  const lngSpan = (part.lngMax - part.lngMin) / cols;
+  const latMin = part.latMin + row * rowH;
+  const latMax = (row === part.rows - 1) ? part.latMax : part.latMin + (row + 1) * rowH;
+  const lngMin = part.lngMin + col * lngSpan;
+  const lngMax = (col === cols - 1) ? part.lngMax : part.lngMin + (col + 1) * lngSpan;
+  return { latMin, latMax, lngMin, lngMax };
+}
+
+function idxToChars(idx){
+  let digits = [], x = idx;
+  for (let i = 0; i < 3; i++){ digits.push(x % BASE); x = Math.floor(x / BASE); }
+  digits.reverse();
+  return digits.map(d => ALPHABET[d]).join('');
+}
+function charsToIdx(chars){
+  let idx = 0;
+  for (const c of chars){
+    const d = ALPHABET.indexOf(c);
+    if (d === -1) throw new Error('Character "'+c+'" is not in the placepin alphabet.');
+    idx = idx * BASE + d;
+  }
+  return idx;
+}
+// Coordinates are WGS84 degrees. Longitude is folded into [-180, 180) so
+// +180 and -180 (the same meridian) always encode identically.
+function normalize(lat, lng){
+  lat = Math.max(-90, Math.min(90, lat));
+  lng = ((lng + 180) % 360 + 360) % 360 - 180;
+  return { lat, lng };
+}
+
+// ENCODE: coordinates -> nine-character hierarchical code + the 3 nested boxes.
+// Returned `blocks` and `levels` are both in WRITE order — index 0 is block 1
+// (local, finest), index 2 is block 3 (region, coarsest) — even though the
+// underlying computation below still runs coarsest-to-finest, because that's
+// the only order in which each step's box is actually defined.
+function encode(lat, lng){
+  ({ lat, lng } = normalize(lat, lng));
+  let bounds = { latMin:-90, latMax:90, lngMin:-180, lngMax:180 };
+  const chars = [], boundsAtStep = [];
+  for (let step = 0; step < 3; step++){
+    const part = partition(bounds.latMin, bounds.latMax, bounds.lngMin, bounds.lngMax, FACTOR);
+    const { row, col } = rowColFromLatLng(part, lat, lng);
+    const idx = part.prefix[row] + col;
+    chars.push(idxToChars(idx));
+    bounds = boundsFromRowCol(part, row, col);
+    boundsAtStep.push(bounds);
+  }
+  const blocks = chars.slice().reverse();        // write order: block 1 (local) … block 3 (region)
+  const levels = boundsAtStep.slice().reverse();  // write order, same indexing as blocks
+  return { code: blocks.join('-'), blocks, levels, bounds: levels[0] }; // bounds = leaf (finest) cell
+}
+
+// DECODE: accepts 1, 2 or 3 blocks (3, 6 or 9 characters), written finest-first
+// (block 1 … up to block 3). A short code is the LAST 1 or 2 blocks of a full
+// code — the coarser end — since dropping the leading (finer) blocks is what
+// "trails off" to a valid, independently decodable coarser address. Decoding
+// still COMPUTES coarsest-to-finest regardless of how many blocks were given.
+function decode(rawCode){
+  const chars = rawCode.replace(/[\s-]/g,'').toUpperCase();
+  if (chars.length === 0 || chars.length % 3 !== 0 || chars.length > 9)
+    throw new Error('A placepin code is 1, 2 or 3 three-character blocks (3, 6 or 9 characters).');
+  const nBlocks = chars.length / 3;
+  const given = [];
+  for (let i = 0; i < nBlocks; i++) given.push(chars.slice(i*3, i*3+3));
+  const computeOrder = given.slice().reverse(); // coarsest-first, matching how each box is actually defined
+
+  let bounds = { latMin:-90, latMax:90, lngMin:-180, lngMax:180 };
+  const levelsComputed = [];
+  for (let step = 0; step < nBlocks; step++){
+    const block = computeOrder[step];
+    const idx = charsToIdx(block);
+    const part = partition(bounds.latMin, bounds.latMax, bounds.lngMin, bounds.lngMax, FACTOR);
+    if (idx >= part.total) throw new Error('Block '+(3-step)+' ("'+block+'") is out of range for its parent cell.');
+    let lo = 0, hi = part.rows - 1;
+    while (lo < hi){
+      const mid = (lo + hi + 1) >>> 1;
+      if (part.prefix[mid] <= idx) lo = mid; else hi = mid - 1;
+    }
+    const row = lo, col = idx - part.prefix[row];
+    bounds = boundsFromRowCol(part, row, col);
+    levelsComputed.push(bounds);
+  }
+  const levels = levelsComputed.slice().reverse(); // write order, index i matches given[i]
+  const center = { lat: (bounds.latMin+bounds.latMax)/2, lng: (bounds.lngMin+bounds.lngMax)/2 };
+  return { center, bounds, levels, nBlocks };
+}
+
+function cellMetrics(b){
+  const h = (b.latMax-b.latMin)*Math.PI/180*R;
+  const latC = (b.latMin+b.latMax)/2;
+  const w = (b.lngMax-b.lngMin)*Math.PI/180*R*Math.cos(latC*Math.PI/180);
+  return { h, w, area: h*w };
+}
+
+// ---------- map ----------
+const map = L.map('map', {worldCopyJump:true}).setView([51.5007, -0.1246], 17);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  maxZoom: 20,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+}).addTo(map);
+
+let marker = null, rects = [];
+// Indexed to match write-order `levels` (index 0 = local/finest = most
+// visually prominent; index 2 = region/coarsest = palest, largest box).
+const LEVEL_STYLE = [
+  { color:'#c1694f', weight:2,   fillOpacity:0.3  },
+  { color:'#6f93ad', weight:1.5, fillOpacity:0.07 },
+  { color:'#9fb8c9', weight:1.5, fillOpacity:0.04 }
+];
+
+function fmt(n, d){ return n.toLocaleString(undefined, {minimumFractionDigits:d, maximumFractionDigits:d}); }
+function fmtSize(b){
+  const m = cellMetrics(b);
+  if (m.h >= 1000 || m.w >= 1000) return fmt(m.h/1000,1)+' km × '+fmt(m.w/1000,1)+' km';
+  if (m.h >= 10 || m.w >= 10) return fmt(m.h,1)+' m × '+fmt(m.w,1)+' m';
+  return fmt(m.h,2)+' m × '+fmt(m.w,2)+' m';
+}
+
+function drawLevels(levels){
+  rects.forEach(r => map.removeLayer(r));
+  rects = levels.map((b, i) => L.rectangle(
+    [[b.latMin, b.lngMin],[b.latMax, b.lngMax]], LEVEL_STYLE[i]
+  ).addTo(map));
+}
+
+function setDepthLabels(nBlocks){
+  const label = nBlocks === 3 ? 'Leaf cell' : nBlocks === 2 ? 'Area + region cell' : 'Region cell';
+  document.getElementById('cellDetailHeading').textContent = label + ' detail';
+  document.getElementById('rCentreLabel').textContent = label + ' centre';
+  document.getElementById('rAreaLabel').textContent = label + ' area';
+}
+
+function showAtLatLng(lat, lng, clickedText){
+  const enc = encode(lat, lng);
+  const dec = decode(enc.code);
+  const leaf = dec.bounds; // full 9-char code always resolves to the leaf cell
+  const m = cellMetrics(leaf);
+
+  document.getElementById('codeOut').innerHTML =
+    '<span class="b1">'+enc.blocks[0]+'</span>-<span class="b2">'+enc.blocks[1]+'</span>-<span class="b3">'+enc.blocks[2]+'</span>';
+  document.getElementById('rClicked').textContent = clickedText || (lat.toFixed(6)+', '+lng.toFixed(6));
+  setDepthLabels(3);
+  document.getElementById('rCentre').textContent = dec.center.lat.toFixed(6)+', '+dec.center.lng.toFixed(6);
+  document.getElementById('rArea').textContent = fmt(m.area,2)+' m²';
+
+  const b = enc.blocks; // write order: [local, area, region]
+  document.getElementById('lv1code').textContent = b[2];
+  document.getElementById('lv2code').textContent = b[1]+'-'+b[2];
+  document.getElementById('lv3code').textContent = b[0]+'-'+b[1]+'-'+b[2];
+  document.getElementById('lv1size').textContent = fmtSize(enc.levels[2]);
+  document.getElementById('lv2size').textContent = fmtSize(enc.levels[1]);
+  document.getElementById('lv3size').textContent = fmtSize(enc.levels[0]);
+
+  if (marker) map.removeLayer(marker);
+  marker = L.marker([dec.center.lat, dec.center.lng]).addTo(map);
+  drawLevels(enc.levels);
+
+  return { enc, dec };
+}
+
+map.on('click', (e)=>{
+  document.getElementById('err').textContent = '';
+  showAtLatLng(e.latlng.lat, e.latlng.lng);
+});
+
+document.getElementById('btnLocate').addEventListener('click', ()=>{
+  const val = document.getElementById('codeIn').value.trim();
+  const errEl = document.getElementById('err');
+  errEl.style.color = '';
+  errEl.textContent = '';
+  if (!val) { errEl.style.color = 'var(--terracotta)'; errEl.textContent = 'Enter a code first.'; return; }
+  try{
+    const dec = decode(val);
+    const leaf = dec.bounds;
+    document.getElementById('codeOut').textContent = val.toUpperCase();
+    document.getElementById('rClicked').textContent = '(decoded from code)';
+    setDepthLabels(dec.nBlocks);
+    document.getElementById('rCentre').textContent = dec.center.lat.toFixed(6)+', '+dec.center.lng.toFixed(6);
+    const m = cellMetrics(leaf);
+    document.getElementById('rArea').textContent = fmt(m.area,2)+' m²';
+
+    // Populate whichever precision-tier rows this code actually reaches;
+    // blank the rest. `given` is write order (index 0 = first block typed).
+    // A tier needing T blocks is shown once nBlocks >= T, using the LAST T
+    // given blocks (the coarse end) and dec.levels[nBlocks - T] for its box.
+    const chars = val.replace(/[\s-]/g,'').toUpperCase();
+    const given = [];
+    for (let i=0;i<dec.nBlocks;i++) given.push(chars.slice(i*3,i*3+3));
+
+    const rows = [ { id:'lv1', need:1 }, { id:'lv2', need:2 }, { id:'lv3', need:3 } ];
+    for (const r of rows){
+      if (dec.nBlocks >= r.need){
+        const tail = given.slice(given.length - r.need);
+        document.getElementById(r.id+'code').textContent = tail.join('-');
+        document.getElementById(r.id+'size').textContent = fmtSize(dec.levels[dec.nBlocks - r.need]);
+      } else {
+        document.getElementById(r.id+'code').textContent = '—';
+        document.getElementById(r.id+'size').textContent = '—';
+      }
+    }
+
+    if (marker) map.removeLayer(marker);
+    marker = L.marker([dec.center.lat, dec.center.lng]).addTo(map);
+    drawLevels(dec.levels);
+    map.fitBounds([[leaf.latMin, leaf.lngMin],[leaf.latMax, leaf.lngMax]], {maxZoom:18, padding:[40,40]});
+
+    if (dec.nBlocks < 3){
+      errEl.style.color = 'var(--faint)';
+      errEl.textContent = 'Note: '+dec.nBlocks+'-block code — showing its coarser area, not a leaf cell.';
+    }
+  } catch(ex){
+    errEl.style.color = 'var(--terracotta)';
+    errEl.textContent = ex.message;
+  }
+});
+
+document.getElementById('codeIn').addEventListener('keydown', (e)=>{
+  if (e.key === 'Enter') document.getElementById('btnLocate').click();
+});
+
+document.getElementById('btnMyLoc').addEventListener('click', ()=>{
+  const errEl = document.getElementById('err');
+  errEl.style.color = 'var(--terracotta)';
+  if (!navigator.geolocation){ errEl.textContent = 'Geolocation not supported by this browser.'; return; }
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      errEl.textContent = '';
+      const {latitude, longitude} = pos.coords;
+      showAtLatLng(latitude, longitude);
+      map.setView([latitude, longitude], 18);
+    },
+    (e)=>{ errEl.textContent = 'Could not get location: '+e.message; }
+  );
+});
+
+// initial specimen — instant, no precompute needed
+showAtLatLng(51.5007, -0.1246, 'default: London');
+</script>
+</body>
+</html>

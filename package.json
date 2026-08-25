@@ -1,0 +1,49 @@
+{
+  "name": "@placepin/vectors",
+  "version": "0.1.0",
+  "description": "Canonical conformance fixtures for the placepin location protocol. Spec §03: conformance is defined by these vectors, not by the prose.",
+  "keywords": [
+    "placepin",
+    "conformance",
+    "test-vectors",
+    "geocode",
+    "specification"
+  ],
+  "homepage": "https://placepin.org",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/placepin-org/placepin-spec.git"
+  },
+  "license": "Apache-2.0",
+  "author": "placepin.org",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "vectors.json",
+    "SPEC.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./vectors.json": "./vectors.json",
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}

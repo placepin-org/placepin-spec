@@ -1,0 +1,143 @@
+{
+  "$comment": "Canonical conformance fixtures for the placepin location protocol. Spec §03: conformance is defined by these vectors, not by the prose. A conforming implementation MUST reproduce every row exactly and MUST ship this suite in its tests.",
+  "protocol": "placepin",
+  "revision": "v5-draft",
+  "spec": "SPEC.md",
+  "constants": {
+    "alphabet": "0123456789BCDFGHJKMNPQRSTVWXYZ",
+    "base": 30,
+    "factor": 27000,
+    "earthRadiusM": 6371000,
+    "datum": "WGS84"
+  },
+  "vectors": [
+    {
+      "input": {
+        "lat": 51.5074,
+        "lng": -0.1278
+      },
+      "code": "PYY-ZT7-WMR",
+      "centre": {
+        "lat": 51.507387,
+        "lng": -0.127806
+      }
+    },
+    {
+      "input": {
+        "lat": 40.689247,
+        "lng": -74.044502
+      },
+      "code": "S9Q-87F-TS4",
+      "centre": {
+        "lat": 40.689235,
+        "lng": -74.044515
+      }
+    },
+    {
+      "input": {
+        "lat": -33.8568,
+        "lng": 151.2153
+      },
+      "code": "C33-6SH-6V8",
+      "centre": {
+        "lat": -33.856786,
+        "lng": 151.2153
+      }
+    },
+    {
+      "input": {
+        "lat": 0,
+        "lng": 0
+      },
+      "code": "000-H00-H00",
+      "centre": {
+        "lat": 0.000023,
+        "lng": 0.000023
+      }
+    },
+    {
+      "input": {
+        "lat": 90,
+        "lng": 0
+      },
+      "code": "ZZZ-ZZZ-ZZY",
+      "centre": {
+        "lat": 89.999982,
+        "lng": 45
+      }
+    },
+    {
+      "input": {
+        "lat": -90,
+        "lng": 0
+      },
+      "code": "000-000-002",
+      "centre": {
+        "lat": -89.999982,
+        "lng": 45
+      }
+    },
+    {
+      "input": {
+        "lat": 0,
+        "lng": 180
+      },
+      "code": "000-H00-GV4",
+      "centre": {
+        "lat": 0.000023,
+        "lng": -179.999977
+      }
+    },
+    {
+      "input": {
+        "lat": 78.2232,
+        "lng": 15.6267
+      },
+      "code": "P26-HS4-ZPB",
+      "centre": {
+        "lat": 78.223205,
+        "lng": 15.626777
+      }
+    },
+    {
+      "input": {
+        "lat": -54.801912,
+        "lng": -68.302951
+      },
+      "code": "1Q7-BKJ-2RG",
+      "centre": {
+        "lat": -54.801919,
+        "lng": -68.30294
+      }
+    },
+    {
+      "input": {
+        "lat": 35.689722,
+        "lng": 139.692222
+      },
+      "code": "05Q-7NJ-SX5",
+      "centre": {
+        "lat": 35.689724,
+        "lng": 139.692198
+      }
+    }
+  ],
+  "supplementary": {
+    "antimeridian": {
+      "$comment": "encode(0, 180) and encode(0, -180) are the same meridian and MUST produce one code.",
+      "lng180EqualsMinus180": true
+    },
+    "suffixContainment": {
+      "$comment": "A 3- or 6-character suffix (the right-hand, coarser end) of any vector MUST decode to a box strictly containing that vector leaf cell.",
+      "holds": true
+    },
+    "prefixUnrelated": {
+      "$comment": "A 3- or 6-character PREFIX (the left-hand, finer end) MUST NOT be assumed to relate to the vector at all. A bare local block is a search input, not an address.",
+      "holds": true
+    },
+    "partitionInvariant": {
+      "$comment": "sum(cols) MUST equal factor after every partition, at every level, for every box.",
+      "totalEqualsFactor": true
+    }
+  }
+}
