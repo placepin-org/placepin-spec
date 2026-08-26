@@ -3,11 +3,11 @@
 The normative specification for the placepin location protocol, and the
 conformance fixtures every implementation is measured against.
 
-| File | What it is |
-|---|---|
-| `SPEC.md` | The specification. **Normative.** |
-| `vectors.json` | Appendix A, language-neutral. Published as `@placepin/vectors`. |
-| `reference/live-demo.html` | The original single-file reference implementation (§09) |
+| File                       | What it is                                                      |
+| -------------------------- | --------------------------------------------------------------- |
+| `SPEC.md`                  | The specification. **Normative.**                               |
+| `vectors.json`             | Appendix A, language-neutral. Published as `@placepin/vectors`. |
+| `reference/live-demo.html` | The original single-file reference implementation (§09)         |
 
 ```sh
 npm test    # 6 fixture-integrity tests, no dependencies
@@ -17,8 +17,8 @@ npm test    # 6 fixture-integrity tests, no dependencies
 
 This is the thing to be careful about in this repo.
 
-§03: *conformance is defined by the test vectors in Appendix A, not by the
-prose*, because `sin`/`cos`/`sqrt` are not bit-identical across platforms. The
+§03: _conformance is defined by the test vectors in Appendix A, not by the
+prose_, because `sin`/`cos`/`sqrt` are not bit-identical across platforms. The
 vectors are not a test of the protocol — for practical purposes they **are** the
 protocol.
 
@@ -41,7 +41,7 @@ four supplementary MUSTs before writing them into the file:
 
 - the antimeridian identity — `encode(0, 180) == encode(0, −180)`
 - suffix containment — a 3- or 6-character suffix strictly contains the leaf
-- prefix non-relation — a leading block is *not* related to the full code
+- prefix non-relation — a leading block is _not_ related to the full code
 - the partition invariant — `sum(cols) == factor`, every box, every level
 
 Do not hand-edit it. Regenerate, and let generation fail if an assertion breaks.
@@ -67,8 +67,8 @@ PYY-ZT7-WMR   leaf, ≈5 m
 PYY           NOT AN ADDRESS
 ```
 
-§01, normative: *Software MUST NOT decode a 3-character input as Block 1 (local)
-in isolation.* Resolving a bare local block against approximate position is a
+§01, normative: _Software MUST NOT decode a 3-character input as Block 1 (local)
+in isolation._ Resolving a bare local block against approximate position is a
 legitimate product feature — it is not `decode()`, and it must live in a
 separate module.
 
@@ -97,5 +97,5 @@ others to implement it should ship complete licences.
 
 ## Conventions
 
-Commit email `hi@princeraju.com`, set per-repo. Brand is lowercase
+Brand is lowercase
 **placepin**, never "PlacePin".
